@@ -73,7 +73,7 @@ def generate_css(colors: dict[str, str]) -> str:
     height: 30%;
     border: solid {c3};
     border-title-align: left;
-    border-title-color: {c3};
+    border-title-color: {c6};
     border-title-style: bold;
 }}
 
@@ -82,8 +82,19 @@ def generate_css(colors: dict[str, str]) -> str:
     height: 64%;
     border: solid {c3};
     border-title-align: left;
-    border-title-color: {c3};
+    border-title-color: {c6};
     border-title-style: bold;
+}}
+
+/* App list view */
+#app-list {{
+    background: {c0};
+    overflow-y: hidden;
+    padding_left: 2;
+    padding_right: 2;
+}}
+#app-list:focus {{
+ background: transparent;
 }}
 
 /* Input panel */
@@ -91,7 +102,7 @@ def generate_css(colors: dict[str, str]) -> str:
     height: 6%;
     border: solid {c3};
     border-title-align: left;
-    border-title-color: {c3};
+    border-title-color: {c6};
     border-title-style: bold;
     
 }}
