@@ -96,6 +96,9 @@ def generate_css(colors: dict[str, str]) -> str:
 #app-list:focus {{
  background: transparent;
 }}
+ListView > ListItem.-highlight {{
+ background: {c1};
+}}
 
 /* Input panel */
 #Input {{

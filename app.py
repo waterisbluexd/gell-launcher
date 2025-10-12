@@ -194,6 +194,14 @@ class GellLauncher(Screen[None]):
         
         # Focus the search input
         self.query_one("#search-input").focus()
+        
+        # Hide on first mount (startup)
+        try:
+            # Check if we're on special workspace, if so hide it
+            subprocess.run(['hyprctl', 'dispatch', 'togglespecialworkspace', 'gell'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
     
     def on_screen_resume(self) -> None:
         """Called when screen becomes active again"""
@@ -255,12 +263,50 @@ class GellLauncher(Screen[None]):
                 # Clear input and hide window
                 self.clear_and_hide()
     
+    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        """When an item is highlighted, treat Enter as launch"""
+        # This allows Enter to launch the highlighted item
+        pass
+    
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Launch first app on Enter"""
+        """Launch first app or highlighted app on Enter"""
+        app_list = self.query_one("#app-list", ListView)
+        
+        # If an item is highlighted, launch it
+        if app_list.index is not None and 0 <= app_list.index < len(self.filtered_apps):
+            display_limit = min(100, len(self.filtered_apps))
+            if app_list.index < display_limit:
+                app = self.filtered_apps[app_list.index]
+                app.launch()
+                self.clear_and_hide()
+                return
+        
+        # Otherwise launch the first app
         if self.filtered_apps:
             self.filtered_apps[0].launch()
-            # Clear input and hide window
             self.clear_and_hide()
+    
+    def on_key(self, event) -> None:
+        """Handle arrow keys to navigate app list while in search input"""
+        app_list = self.query_one("#app-list", ListView)
+        
+        if event.key == "down":
+            # Move selection down
+            if app_list.index is None:
+                app_list.index = 0
+            else:
+                app_list.action_cursor_down()
+            event.prevent_default()
+            event.stop()
+        
+        elif event.key == "up":
+            # Move selection up
+            if app_list.index is None:
+                app_list.index = 0
+            else:
+                app_list.action_cursor_up()
+            event.prevent_default()
+            event.stop()
     
     def clear_and_hide(self):
         """Clear the search input and hide the window"""
@@ -270,10 +316,11 @@ class GellLauncher(Screen[None]):
         self.filtered_apps = self.apps.copy()
         self.update_app_list()
         
-        # Then hide the window
+        # Then hide the window by toggling the special workspace
         try:
-            # Move THIS window to special workspace
-            subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', 'special:gell'])
+            # Toggle special workspace to hide it
+            subprocess.run(['hyprctl', 'dispatch', 'togglespecialworkspace', 'gell'], 
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             pass
 
@@ -282,6 +329,7 @@ class GellApp(App[None]):
     BINDINGS = [
         Binding("escape", "hide_window", "Hide"),
         Binding("ctrl+c", "hide_window", "Hide"),
+        Binding("ctrl+q", "quit_app", "Quit", show=False),
     ]
     
     def __init__(self):
@@ -295,16 +343,13 @@ class GellApp(App[None]):
     
     def action_hide_window(self) -> None:
         """Hide the window and clear search input"""
-        # Get the current screen and clear input
         screen = self.screen
         if isinstance(screen, GellLauncher):
             screen.clear_and_hide()
-        
-        # Focus back to previous window
-        try:
-            subprocess.run(['hyprctl', 'dispatch', 'focuscurrentorlast'])
-        except Exception:
-            pass
+    
+    def action_quit_app(self) -> None:
+        """Actually quit the application"""
+        self.exit()
 
 if __name__ == "__main__":
     # Add --inline for kitty
