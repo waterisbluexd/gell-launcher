@@ -93,11 +93,13 @@ def generate_css(colors: dict[str, str]) -> str:
     padding_left: 2;
     padding_right: 2;
 }}
+
 #app-list:focus {{
- background: transparent;
+    background: transparent;
 }}
+
 ListView > ListItem.-highlight {{
- background: {c1};
+    background: {c1};
 }}
 
 /* Input panel */
@@ -107,7 +109,6 @@ ListView > ListItem.-highlight {{
     border-title-align: left;
     border-title-color: {c6};
     border-title-style: bold;
-    
 }}
 
 .panel-content {{
@@ -141,6 +142,162 @@ Input {{
 
 Input:focus {{
     border: none;
+}}
+
+/* ========================================
+   MUSIC PLAYER PANEL
+   ======================================== */
+
+.music-panel {{
+    width: 100%;
+    height: 100%;
+    padding: 1 2;
+}}
+
+/* No media state */
+.music-no-media {{
+    color: {c6};
+    text-align: center;
+    text-style: bold;
+    margin-top: 2;
+}}
+
+.music-hint {{
+    color: {c8};
+    text-align: center;
+    text-style: italic;
+}}
+
+/* Header */
+.music-header {{
+    color: {c6};
+    text-style: bold;
+    margin-bottom: 1;
+}}
+
+/* Content area (album art + info) */
+.music-content {{
+    height: auto;
+    margin-bottom: 1;
+}}
+
+/* Album art container */
+.music-album-art {{
+    width: 17;
+    height: 8;
+    border: solid {c4};
+    margin-right: 2;
+}}
+
+.album-art-placeholder {{
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    color: {c8};
+    content-align: center middle;
+}}
+
+/* Track info */
+.music-info {{
+    width: 1fr;
+    height: auto;
+}}
+
+.music-title {{
+    color: {fg};
+    text-style: bold;
+    margin-bottom: 0;
+}}
+
+.music-artist {{
+    color: {c10};
+    margin-bottom: 0;
+}}
+
+.music-album {{
+    color: {c8};
+    text-style: italic;
+    margin-bottom: 0;
+}}
+
+.music-player {{
+    color: {c4};
+    margin-top: 1;
+}}
+
+/* Progress bar section */
+.music-progress-container {{
+    height: 1;
+    width: 100%;
+    margin-top: 1;
+    margin-bottom: 1;
+}}
+
+.music-time {{
+    color: {c8};
+    width: auto;
+}}
+
+.music-progress-bar {{
+    color: {c3};
+    width: 1fr;
+    text-align: center;
+}}
+
+/* Controls hints */
+.music-controls {{
+    height: auto;
+    width: 100%;
+    margin-top: 1;
+}}
+
+.control-label {{
+    color: {c6};
+    text-style: bold;
+}}
+
+.control-hint {{
+    color: {c8};
+}}
+
+/* ========================================
+   SYSTEM INFO PANEL
+   ======================================== */
+
+.panel-system {{
+    width: 100%;
+    height: 100%;
+    padding: 1 2;
+}}
+
+.system-title {{
+    color: {c6};
+    text-style: bold;
+    margin-bottom: 1;
+}}
+
+.stat-row {{
+    height: auto;
+    width: 100%;
+    margin-bottom: 1;
+}}
+
+.stat-label {{
+    color: {c4};
+    text-style: bold;
+    width: auto;
+    margin-right: 1;
+}}
+
+.stat-value {{
+    color: {fg};
+    width: auto;
+    margin-right: 2;
+}}
+
+.stat-bar {{
+    color: {c3};
+    width: 1fr;
 }}
 """
 
