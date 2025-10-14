@@ -273,9 +273,11 @@ Button.music-btn-play:focus {{
    SYSTEM INFO PANEL
    ======================================== */
 .panel-system {{
+    layout: vertical;
+    align: center top;
     width: 100%;
     height: 100%;
-    padding: 1 2;
+    padding-top: 1;
 }}
 
 .system-title {{
@@ -284,28 +286,11 @@ Button.music-btn-play:focus {{
     margin-bottom: 1;
 }}
 
-.stat-row {{
-    height: auto;
-    width: 100%;
-    margin-bottom: 1;
-}}
-
-.stat-label {{
-    color: {c4};
-    text-style: bold;
-    width: auto;
-    margin-right: 1;
-}}
-
-.stat-value {{
-    color: {fg};
-    width: auto;
-    margin-right: 2;
-}}
-
-.stat-bar {{
+#system-usage-bar {{
     color: {c3};
-    width: 1fr;
+    text-align: center;
+    width: auto;
+    height: auto;
 }}
 """
 
