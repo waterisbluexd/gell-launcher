@@ -278,6 +278,7 @@ Button.music-btn-play:focus {{
     width: 100%;
     height: 100%;
     padding-top: 1;
+    border: solid {c2};
 }}
 
 .system-title {{
