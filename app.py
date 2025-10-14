@@ -20,6 +20,7 @@ from theme import generate_css, load_wal_colors
 from music_panel import MusicPanel
 from dmenu import AppLauncherPanel, clear_cache
 from system_panel import SystemPanel
+from gell_panel import GellPanel
 
 # Handle cache refresh command
 if "--refresh" in sys.argv:
