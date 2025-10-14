@@ -4,10 +4,9 @@ Theme module: Handles pywal color loading and CSS generation.
 import os
 from pathlib import Path
 
+
 def load_wal_colors(config_path: str = '/home/wib/.cache/wal/colors-kitty.conf') -> dict[str, str]:
-    """
-    Parse pywal's kitty color config and return a dict of color names to hex values.
-    """
+    """Parse pywal's kitty color config and return a dict of color names to hex values."""
     colors = {}
     try:
         with open(config_path, 'r') as f:
@@ -31,14 +30,15 @@ def load_wal_colors(config_path: str = '/home/wib/.cache/wal/colors-kitty.conf')
         }
     return colors
 
+
 def generate_css(colors: dict[str, str]) -> str:
     """Generate complete CSS string from color dictionary."""
     # Base colors
     bg = colors.get('background', '#000000')
     fg = colors.get('foreground', '#ffffff')
     cursor = colors.get('cursor', fg)
-    
-    # Terminal colors (0-15)
+
+    # Terminal colors
     c0 = colors.get('color0', '#000000')
     c1 = colors.get('color1', '#ff0000')
     c2 = colors.get('color2', '#00ff00')
@@ -55,9 +55,11 @@ def generate_css(colors: dict[str, str]) -> str:
     c13 = colors.get('color13', '#ff88ff')
     c14 = colors.get('color14', '#88ffff')
     c15 = colors.get('color15', '#ffffff')
-    
+
     return f"""
-/* Main container */
+/* ========================================
+   MAIN CONTAINER
+   ======================================== */
 #gell-container {{
     width: 100%;
     height: 100%;
@@ -68,7 +70,9 @@ def generate_css(colors: dict[str, str]) -> str:
     background: {c0};
 }}
 
-/* Gell panel */
+/* ========================================
+   PANEL CONTAINERS
+   ======================================== */
 #Gell {{
     height: 30%;
     border: solid {c3};
@@ -77,7 +81,6 @@ def generate_css(colors: dict[str, str]) -> str:
     border-title-style: bold;
 }}
 
-/* Apps panel */
 #Apps {{
     height: 64%;
     border: solid {c3};
@@ -86,7 +89,17 @@ def generate_css(colors: dict[str, str]) -> str:
     border-title-style: bold;
 }}
 
-/* App list view */
+#Input {{
+    height: 6%;
+    border: solid {c3};
+    border-title-align: left;
+    border-title-color: {c6};
+    border-title-style: bold;
+}}
+
+/* ========================================
+   APP LIST
+   ======================================== */
 #app-list {{
     background: {c0};
     overflow-y: hidden;
@@ -102,27 +115,17 @@ ListView > ListItem.-highlight {{
     background: {c1};
 }}
 
-/* Input panel */
-#Input {{
-    height: 6%;
-    border: solid {c3};
-    border-title-align: left;
-    border-title-color: {c6};
-    border-title-style: bold;
-}}
-
+/* ========================================
+   SEARCH INPUT
+   ======================================== */
 .panel-content {{
     width: 100%;
     height: 100%;
 }}
 
-/* Search Input Styling */
 #search-input {{
     width: 100%;
     border: none;
-}}
-
-#search-input:focus {{
 }}
 
 #search-input > .input--placeholder {{
@@ -135,7 +138,6 @@ ListView > ListItem.-highlight {{
     text-style: bold;
 }}
 
-/* Input content area */
 Input {{
     background: transparent;
 }}
@@ -147,14 +149,14 @@ Input:focus {{
 /* ========================================
    MUSIC PLAYER PANEL
    ======================================== */
-
-.music-panel {{
+.music-main-container {{
+    layout: vertical; /* Use a vertical layout */
     width: 100%;
     height: 100%;
     padding: 1 2;
+    margin-top: 0;
 }}
 
-/* No media state */
 .music-no-media {{
     color: {c6};
     text-align: center;
@@ -162,75 +164,31 @@ Input:focus {{
     margin-top: 2;
 }}
 
-.music-hint {{
-    color: {c8};
-    text-align: center;
-    text-style: italic;
-}}
-
-/* Header */
-.music-header {{
-    color: {c6};
-    text-style: bold;
-    margin-bottom: 1;
-}}
-
-/* Content area (album art + info) */
-.music-content {{
-    height: auto;
-    margin-bottom: 1;
-}}
-
-/* Album art container */
-.music-album-art {{
-    width: 17;
-    height: 8;
-    border: solid {c4};
-    margin-right: 2;
-}}
-
-.album-art-placeholder {{
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    color: {c8};
-    content-align: center middle;
-}}
-
-/* Track info */
-.music-info {{
-    width: 1fr;
-    height: auto;
-}}
-
 .music-title {{
     color: {fg};
     text-style: bold;
     margin-bottom: 0;
+    text-align: center;
+    max-height: 2;
+    overflow-y: hidden;
+    text-overflow: ellipsis;
 }}
 
 .music-artist {{
     color: {c10};
+    height: 1fr; /* Fill available vertical space */
+    width: 100%;
     margin-bottom: 0;
+    text-align: center;
+    content-align: center middle; /* Vertically center artist text */
 }}
 
-.music-album {{
-    color: {c8};
-    text-style: italic;
-    margin-bottom: 0;
-}}
-
-.music-player {{
-    color: {c4};
-    margin-top: 1;
-}}
-
-/* Progress bar section */
 .music-progress-container {{
     height: 1;
     width: 100%;
     margin-top: 1;
-    margin-bottom: 1;
+    margin-bottom: 0;
+    align: center middle;
 }}
 
 .music-time {{
@@ -244,26 +202,76 @@ Input:focus {{
     text-align: center;
 }}
 
-/* Controls hints */
-.music-controls {{
+.music-control-buttons {{
     height: auto;
     width: 100%;
+    align: center middle;
     margin-top: 1;
 }}
 
-.control-label {{
-    color: {c6};
+/* ========================================
+   BUTTON STYLING - PREVIOUS & NEXT
+   ======================================== */
+Button.music-btn-main {{
+    width: 5;
+    height: 3;
+    min-width: 5;
+    max-width: 5;
+    padding: 0 0;
+    content-align: center middle;
+    background: transparent;
+    color: {c6};              /* Cyan text */
+    border: solid {c8};       /* Dark gray border */
+    margin: 0 1;
+}}
+
+Button.music-btn-main:hover {{
+    background: transparent;
+    color: {c14};             /* Brighter cyan text */
+    border: solid {c6};       /* Cyan border */
+}}
+
+Button.music-btn-main:focus {{
+    background: transparent;
+    color: {fg};              /* White text when focused */
+    border: solid {c4};       /* Blue border highlight */
     text-style: bold;
 }}
 
-.control-hint {{
-    color: {c8};
+/* ========================================
+   BUTTON STYLING - PLAY/PAUSE (CENTER)
+   ======================================== */
+Button.music-btn-play {{
+    width: 5;
+    height: 3;
+    min-width: 5;
+    max-width: 5;
+    padding: 0 0;
+    content-align: center middle;
+    background: transparent;
+    color: {c2};              /* Dark green text */
+    border: solid {c8};       /* Dark gray border */
+    margin-left: 1;
+    margin-bottom: 1;
+}}
+
+Button.music-btn-play:hover {{
+    background: transparent;
+    color: {c10};             /* Bright green text on hover */
+    border: solid {c2};       /* Green border */
+    text-style: bold;
+}}
+
+Button.music-btn-play:focus {{
+    background: transparent;
+    color: {fg};              /* White text on focus */
+    border: solid {c3};       /* Yellow border highlight */
+    text-style: bold;
 }}
 
 /* ========================================
    SYSTEM INFO PANEL
    ======================================== */
-
 .panel-system {{
     width: 100%;
     height: 100%;
@@ -302,6 +310,7 @@ Input:focus {{
 """
 
 def get_file_mtime(config_path: str) -> float:
+    """Get the modification time of a file."""
     try:
         return os.path.getmtime(config_path)
     except FileNotFoundError:
