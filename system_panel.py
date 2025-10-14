@@ -19,20 +19,29 @@ class SystemPanel(Container):
         """Compose the system panel widgets."""
         with Horizontal(classes="system-bars-container"):
             with Container(classes="system-bar-container"):
-                yield Static("CPU", classes="system-title")
+                yield Static("0%", id="system-percent-cpu", classes="system-percent")
                 yield Static(id="system-usage-bar-cpu")
+                yield Static("CPU", classes="system-title")
             with Container(classes="system-bar-container"):
-                yield Static("Memory", classes="system-title")
+                yield Static("0%", id="system-percent-mem", classes="system-percent")
                 yield Static(id="system-usage-bar-mem")
+                yield Static("MEM", classes="system-title")
             with Container(classes="system-bar-container"):
-                yield Static("Disk", classes="system-title")
-                yield Static(id="system-usage-bar-disk")
-            with Container(classes="system-bar-container"):
-                yield Static("Wifi", classes="system-title")
+                yield Static("0%", id="system-percent-wifi", classes="system-percent")
                 yield Static(id="system-usage-bar-wifi")
+                yield Static("WIFI", classes="system-title")
             with Container(classes="system-bar-container"):
-                yield Static("GPU", classes="system-title")
-                yield Static(id="system-usage-bar-gpu")
+                yield Static("0%", id="system-percent-disk", classes="system-percent")
+                yield Static(id="system-usage-bar-disk")
+                yield Static("DISK", classes="system-title")
+            with Container(classes="system-bar-container"):
+                yield Static("0%", id="system-percent-gpu0", classes="system-percent")
+                yield Static(id="system-usage-bar-gpu0")
+                yield Static("GPU0", classes="system-title")
+            with Container(classes="system-bar-container"):
+                yield Static("0%", id="system-percent-gpu1", classes="system-percent")
+                yield Static(id="system-usage-bar-gpu1")
+                yield Static("GPU1", classes="system-title")
 
     def on_mount(self) -> None:
         """Start the timer to refresh system info when the widget is mounted."""
@@ -45,21 +54,25 @@ class SystemPanel(Container):
             self.update_timer.stop()
 
     def _create_bar_str(self, percent: int) -> str:
-        bar_height = 6
+        bar_height = 6  # Increased height for better visibility
         filled_count = round(percent * bar_height / 100)
         empty_count = bar_height - filled_count
-        bar_lines = ["░░"] * empty_count + ["██"] * filled_count
+        
+        # Right-align the bars with padding
+        bar_lines = ["░░    "] * empty_count + ["██    "] * filled_count
         return "\n".join(bar_lines)
 
     def refresh_info(self) -> None:
         """Update the system information display."""
         info = self.get_system_info()
         
-        self.query_one("#system-usage-bar-cpu").update(self._create_bar_str(info.get('cpu_percent', 0)))
-        self.query_one("#system-usage-bar-mem").update(self._create_bar_str(info.get('mem_percent', 0)))
-        self.query_one("#system-usage-bar-disk").update(self._create_bar_str(info.get('disk_percent', 0)))
-        self.query_one("#system-usage-bar-wifi").update(self._create_bar_str(info.get('wifi_percent', 0)))
-        self.query_one("#system-usage-bar-gpu").update(self._create_bar_str(info.get('gpu_percent', 0)))
+        # Update both bars and percentage displays
+        metrics = ['cpu', 'mem', 'wifi', 'disk', 'gpu0', 'gpu1']
+        for metric in metrics:
+            value = info.get(f'{metric}_percent', 0)
+            self.query_one(f"#system-usage-bar-{metric}").update(self._create_bar_str(value))
+            # Add consistent right padding to percentage display
+            self.query_one(f"#system-percent-{metric}").update(f"{value}%    ")
 
     def get_system_info(self) -> dict:
         """Retrieves system information."""

@@ -277,21 +277,53 @@ Button.music-btn-play:focus {{
     align: center top;
     width: 100%;
     height: 100%;
-    padding-top: 1;
-    border: solid {c2};
+    padding: 0;
+}}
+
+.system-bars-container {{
+    height: 100%;
+    align: center middle;
+    padding: 0 0;
+}}
+
+.system-bar-container {{
+    width: 1fr;
+    height: 100%;
+    align: center middle;
+    padding-left: 3;
+    margin: 0 0;
+}}
+
+.system-percent {{
+    color: {c7};
+    text-align: right;
+    height: 1;
+    margin-bottom: 1;
+    text-style: bold;
+    padding-right: 1;
 }}
 
 .system-title {{
     color: {c6};
     text-style: bold;
-    margin-bottom: 1;
+    text-align: right;
+    height: 1;
+    margin-right:2;
+    margin-top:1;
+    padding-right:0;
+
 }}
 
-#system-usage-bar {{
+#system-usage-bar-cpu,
+#system-usage-bar-mem,
+#system-usage-bar-wifi,
+#system-usage-bar-disk,
+#system-usage-bar-gpu0,
+#system-usage-bar-gpu1 {{
     color: {c3};
     text-align: center;
     width: auto;
-    height: auto;
+    min-height: 6;
 }}
 """
 
