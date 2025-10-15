@@ -12,7 +12,7 @@ except ImportError:
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Vertical
-from textual.widgets import Input, Static
+from textual.widgets import Input
 from textual.screen import Screen
 
 # Local imports
@@ -32,11 +32,16 @@ if "--refresh" in sys.argv:
 class GellLauncher(Screen):
     """The main screen for the application launcher."""
 
-    def __init__(self):
+    def __init__(self, app_instance):
         super().__init__()
         self.app_launcher = AppLauncherPanel(self)
         self.music_panel = MusicPanel()
         self.system_panel = SystemPanel()
+        self.gell_panel = GellPanel()
+        
+        # Start the clock immediately, even before mounting
+        # This ensures it's always ready when you open the launcher
+        self.gell_panel.start_clock_early(app_instance)
         
         self.panels = [
             {"name": "Gell Launcher", "render": self.render_panel_launcher},
@@ -44,6 +49,7 @@ class GellLauncher(Screen):
             {"name": "System Info", "render": self.render_panel_system},
         ]
         self.current_panel_index = 0
+        self.prewarm_mode = "--prewarm" in sys.argv
 
     def compose(self) -> ComposeResult:
         with Vertical(id="gell-container"):
@@ -51,7 +57,7 @@ class GellLauncher(Screen):
             yield from self.app_launcher.compose()
     
     def render_panel_launcher(self) -> ComposeResult:
-        yield Static("Gell Launcher", classes="panel-content")
+        yield self.gell_panel
 
     def render_panel_music(self) -> ComposeResult:
         yield self.music_panel
@@ -60,8 +66,39 @@ class GellLauncher(Screen):
         yield self.system_panel
 
     def on_mount(self) -> None:
+        if self.prewarm_mode:
+            self.set_timer(0.1, self.prewarm_all_panels)
+        else:
+            self.update_panel_display()
+            self.app_launcher.on_mount()
+            self.query_one("#search-input", Input).focus()
+
+    def hide_window_immediately(self):
+        """Uses hyprctl to move the window to the special workspace without animation."""
+        try:
+            subprocess.run(
+                ['hyprctl', 'dispatch', 'movetoworkspacesilent', 'special:gell'],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except FileNotFoundError:
+            pass
+    
+    def prewarm_all_panels(self):
+        """
+        Initialize the app and hide the window immediately.
+        The clock is already running thanks to start_clock_early().
+        """
+        # Just set up the initial display
+        self.current_panel_index = 0
         self.update_panel_display()
+        
         self.app_launcher.on_mount()
+        
+        # Hide the window quickly - clock is already running
+        self.set_timer(0.05, self.hide_window_immediately)
+        
+        # Pre-warming is complete. Allow key presses from now on.
+        self.prewarm_mode = False
         
     def update_panel_display(self):
         panel_meta = self.panels[self.current_panel_index]
@@ -78,11 +115,17 @@ class GellLauncher(Screen):
         
         if self.panels[self.current_panel_index]['name'] == "Music Player":
             self.music_panel.on_panel_focus()
+        elif self.panels[self.current_panel_index]['name'] == "Gell Launcher":
+            self.gell_panel.on_panel_focus()
     
     def on_screen_resume(self) -> None:
         self.app_launcher.reset()
-        self.current_panel_index = 0
-        self.update_panel_display()
+        if self.current_panel_index != 0:
+            self.current_panel_index = 0
+            self.update_panel_display()
+        
+        # IMPROVEMENT: Explicitly focus the input box when the window appears
+        self.query_one("#search-input", Input).focus()
     
     def on_input_changed(self, event: Input.Changed) -> None:
         self.app_launcher.on_input_changed(event.value)
@@ -98,6 +141,10 @@ class GellLauncher(Screen):
             self.parent.action_hide_window()
 
     def on_key(self, event) -> None:
+        if self.prewarm_mode:
+            event.stop()
+            return
+            
         search_input = self.query_one("#search-input", Input)
         app_list = self.query_one("#app-list")
 
@@ -137,10 +184,8 @@ class GellLauncher(Screen):
             event.stop()
             return
 
-        if len(event.key) == 1 and event.key.isprintable():
+        if self.screen.focused is not search_input and event.key.isprintable() and len(event.key) == 1:
             search_input.focus()
-            search_input.value += event.key
-            event.stop()
 
     def action_hide_window(self) -> None:
         try:
@@ -210,7 +255,8 @@ class GellApp(App):
         self.log(f"👀 Watching {self.wal_colors_path} for theme changes...")
     
     def on_mount(self) -> None:
-        self.push_screen(GellLauncher())
+        # Pass the app instance to GellLauncher so it can start the clock early
+        self.push_screen(GellLauncher(self))
         self.start_theme_watcher()
     
     def action_hide_window(self) -> None:

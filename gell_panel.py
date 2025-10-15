@@ -125,21 +125,40 @@ class GellPanel(Container):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.update_timer = None
+        self._app_ref = None
 
     def compose(self) -> ComposeResult:
         """Compose the clock panel widgets."""
         yield Static("", id="clock-time", classes="clock-time")
         yield Static("", id="clock-date", classes="clock-date")
 
+    def start_clock_early(self, app_instance) -> None:
+        """Start clock updates before widget is mounted (for prewarming).
+        
+        This allows the clock to start ticking immediately at boot time,
+        so it's ready when the user opens the launcher.
+        """
+        if not self.update_timer:
+            self._app_ref = app_instance
+            try:
+                # Start the timer on the app instance instead of the widget
+                self.update_timer = app_instance.set_interval(1.0, self.update_display)
+            except Exception as e:
+                # Fallback: will start normally on mount
+                pass
+
     def on_mount(self) -> None:
         """Start the timer to refresh clock when the widget is mounted."""
         self.update_display()
-        self.update_timer = self.set_interval(1.0, self.update_display)
+        # Only start timer if not already started by start_clock_early()
+        if not self.update_timer:
+            self.update_timer = self.set_interval(1.0, self.update_display)
 
     def on_unmount(self) -> None:
         """Stop the timer when the widget is unmounted."""
         if self.update_timer:
             self.update_timer.stop()
+            self.update_timer = None
 
     def render_large_text(self, text: str) -> str:
         """Convert text to large block-style digits."""
