@@ -147,6 +147,39 @@ Input:focus {{
 }}
 
 /* ========================================
+   CLOCK PANEL
+   ======================================== */
+.panel-clock {{
+    layout: vertical;
+    align: center middle;
+    width: 100%;
+    height: 100%;
+    background: {c0};
+    padding: 0;
+}}
+
+#clock-time {{
+    color: {c6};
+    text-style: bold;
+    text-align: center;
+    width: 100%;
+    height: 1fr;
+    content-align: center middle;
+    margin: 0;
+    padding: 0;
+}}
+
+#clock-date {{
+    color: {c6};
+    text-align: center;
+    width: 100%;
+    height: auto;
+    content-align: center middle;
+    margin-top: 0;
+    padding: 0;
+}}
+
+/* ========================================
    MUSIC PLAYER PANEL
    ======================================== */
 .music-main-container {{
