@@ -21,6 +21,7 @@ from music_panel import MusicPanel
 from dmenu import AppLauncherPanel, clear_cache
 from system_panel import SystemPanel
 from gell_panel import GellPanel
+from weather_panel import WeatherPanel
 
 # Handle cache refresh command
 if "--refresh" in sys.argv:
@@ -38,6 +39,7 @@ class GellLauncher(Screen):
         self.music_panel = MusicPanel()
         self.system_panel = SystemPanel()
         self.gell_panel = GellPanel()
+        self.weather_panel = WeatherPanel()
         
         # Start the clock immediately, even before mounting
         # This ensures it's always ready when you open the launcher
@@ -45,6 +47,7 @@ class GellLauncher(Screen):
         
         self.panels = [
             {"name": "Gell Launcher", "render": self.render_panel_launcher},
+            {"name": "Weather", "render": self.render_panel_weather},
             {"name": "Music Player", "render": self.render_panel_music},
             {"name": "System Info", "render": self.render_panel_system},
         ]
@@ -58,6 +61,9 @@ class GellLauncher(Screen):
     
     def render_panel_launcher(self) -> ComposeResult:
         yield self.gell_panel
+
+    def render_panel_weather(self) -> ComposeResult:
+        yield self.weather_panel
 
     def render_panel_music(self) -> ComposeResult:
         yield self.music_panel

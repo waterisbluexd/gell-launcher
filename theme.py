@@ -358,8 +358,81 @@ Button.music-btn-play:focus {{
     width: auto;
     min-height: 6;
 }}
-"""
+/* ========================================
+   WEATHER PANEL
+   ======================================== */
+.panel-weather {{
+    layout: vertical;
+    width: 100%;
+    height: 100%;
+    padding-top: 1;
+    background: {c0};
+}}
 
+#weather-top-section {{
+    height: auto;
+    width: 100%;
+    margin-bottom: 1;
+}}
+
+#weather-top-inner {{
+    height: auto;
+    width: 100%;
+    layout: horizontal;
+}}
+
+.weather-art {{
+    width: 30%;
+    height: auto;
+    color: {c11};
+    text-style: bold;
+    margin-left: 6;
+    margin-right: 3;
+    text-align: center;
+    content-align: center top;
+}}
+
+#weather-info-section {{
+    width: 70%;
+    height: auto;
+    layout: vertical;
+    padding-left: 5;
+}}
+
+.weather-greeting {{
+    color: {c6};
+    text-style: bold;
+    height: auto;
+    margin-bottom: 0;
+}}
+
+.weather-condition {{
+    color: {c14};
+    height: auto;
+    margin-bottom: 0;
+}}
+
+.weather-temp-main {{
+    color: {fg};
+    text-style: bold;
+    height: auto;
+    margin-bottom: 0;
+}}
+
+.weather-info-detail {{
+    color: {c8};
+    height: auto;
+    margin-bottom: 0;
+}}
+
+.weather-hourly {{
+    color: {c7};
+    width: 100%;
+    height: auto;
+    padding-left: 4;
+    background: {c0};
+}}
+"""
 def get_file_mtime(config_path: str) -> float:
     """Get the modification time of a file."""
     try:
