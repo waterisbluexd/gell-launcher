@@ -183,7 +183,7 @@ Input:focus {{
    MUSIC PLAYER PANEL
    ======================================== */
 .music-main-container {{
-    layout: vertical; /* Use a vertical layout */
+    layout: vertical;
     width: 100%;
     height: 100%;
     padding: 1 2;
@@ -209,11 +209,11 @@ Input:focus {{
 
 .music-artist {{
     color: {c10};
-    height: 1fr; /* Fill available vertical space */
+    height: 1fr;
     width: 100%;
     margin-bottom: 0;
     text-align: center;
-    content-align: center middle; /* Vertically center artist text */
+    content-align: center middle;
 }}
 
 .music-progress-container {{
@@ -253,21 +253,21 @@ Button.music-btn-main {{
     padding: 0 0;
     content-align: center middle;
     background: transparent;
-    color: {c6};              /* Cyan text */
-    border: solid {c8};       /* Dark gray border */
+    color: {c6};
+    border: solid {c8};
     margin: 0 1;
 }}
 
 Button.music-btn-main:hover {{
     background: transparent;
-    color: {c14};             /* Brighter cyan text */
-    border: solid {c6};       /* Cyan border */
+    color: {c14};
+    border: solid {c6};
 }}
 
 Button.music-btn-main:focus {{
     background: transparent;
-    color: {fg};              /* White text when focused */
-    border: solid {c4};       /* Blue border highlight */
+    color: {fg};
+    border: solid {c4};
     text-style: bold;
 }}
 
@@ -282,23 +282,23 @@ Button.music-btn-play {{
     padding: 0 0;
     content-align: center middle;
     background: transparent;
-    color: {c2};              /* Dark green text */
-    border: solid {c8};       /* Dark gray border */
+    color: {c2};
+    border: solid {c8};
     margin-left: 1;
     margin-bottom: 1;
 }}
 
 Button.music-btn-play:hover {{
     background: transparent;
-    color: {c10};             /* Bright green text on hover */
-    border: solid {c2};       /* Green border */
+    color: {c10};
+    border: solid {c2};
     text-style: bold;
 }}
 
 Button.music-btn-play:focus {{
     background: transparent;
-    color: {fg};              /* White text on focus */
-    border: solid {c3};       /* Yellow border highlight */
+    color: {fg};
+    border: solid {c3};
     text-style: bold;
 }}
 
@@ -341,10 +341,9 @@ Button.music-btn-play:focus {{
     text-style: bold;
     text-align: right;
     height: 1;
-    margin-right:2;
-    margin-top:1;
-    padding-right:0;
-
+    margin-right: 2;
+    margin-top: 1;
+    padding-right: 0;
 }}
 
 #system-usage-bar-cpu,
@@ -358,6 +357,7 @@ Button.music-btn-play:focus {{
     width: auto;
     min-height: 6;
 }}
+
 /* ========================================
    WEATHER PANEL
    ======================================== */
@@ -432,7 +432,99 @@ Button.music-btn-play:focus {{
     padding-left: 4;
     background: {c0};
 }}
+
+/* ========================================
+   SERVICES PANEL
+   ======================================== */
+#services-main-container {{
+    layout: horizontal;
+    width: 100%;
+    height: 100%;
+    background: {c0};
+}}
+
+#services-left-panel {{
+    width: 90%;
+    height: 100%;
+    layout: vertical;
+    align: left middle;
+}}
+
+#services-right-panel {{
+    width: 10%;
+    height: 100%;
+    layout: grid;
+    grid-size: 0 4;
+    grid-gutter: 0 4;
+    align: center middle;
+}}
+
+/* Left Side Controls - Long Buttons */
+.service-control-item-left-top {{
+    width: 100%;
+    height: 50%;
+    align: center top;
+}}
+.service-control-item-left-bottom {{
+    width: 100%;
+    height: 50%;
+    align: center bottom;
+}}
+
+.service-btn-left {{
+    width: 100%;
+    height: 3;
+    min-height: 3;
+    background: {c0};
+    color: {c6};
+    border: solid {c4};
+    text-align: center;
+    content-align: center middle;
+    text-style: bold;
+}}
+
+.service-btn-left:hover {{
+    background: {c4} 10%;
+    color: {c14};
+    border: solid {c6};
+    text-style: bold;
+}}
+
+.service-btn-left:focus {{
+    background: {c4} 20%;
+    color: {fg};
+    border: solid {c3};
+    text-style: bold;
+}}
+
+/* Right Side Controls - Square Buttons */
+.service-square-btn {{
+    width: 100%;
+    height: 100%;
+    min-width: 4;
+    min-height: 3;
+    background: {c0};
+    color: {c8};
+    border: solid {c4};
+    content-align: center middle;
+    text-align: center;
+}}
+
+.service-square-btn:hover {{
+    background: {c4} 10%;
+    color: {c6};
+    border: solid {c6};
+}}
+
+.service-square-btn:focus {{
+    background: {c4} 20%;
+    color: {c3};
+    border: solid {c3};
+    text-style: bold;
+}}
 """
+
+
 def get_file_mtime(config_path: str) -> float:
     """Get the modification time of a file."""
     try:
