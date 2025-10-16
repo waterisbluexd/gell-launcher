@@ -31,30 +31,32 @@ class NetworkControl(Container):
     def refresh_status(self) -> None:
         """Check network status and connected SSID using nmcli."""
         try:
-            # Check connectivity
+            # Check if networking is enabled
             result = subprocess.run(
-                ["nmcli", "networking", "connectivity"],
+                ["nmcli", "networking"],
                 capture_output=True, text=True, timeout=2
             )
-            connectivity = result.stdout.strip()
-            self.is_enabled = connectivity in ["full", "limited", "portal"]
+            networking_status = result.stdout.strip()
+            self.is_enabled = networking_status == "enabled"
             
             # Get connected network name if enabled
             if self.is_enabled:
                 try:
-                    # Try to get active connection name
+                    # Get the active Wi-Fi connection
                     ssid_result = subprocess.run(
-                        ["nmcli", "-g", "NAME", "connection", "show", "--active"],
+                        ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"],
                         capture_output=True, text=True, timeout=2
                     )
-                    connections = ssid_result.stdout.strip().split('\n')
-                    # Filter out empty lines and non-wifi connections
-                    for conn in connections:
-                        if conn and not conn.startswith('lo') and conn.strip():
-                            self.network_name = conn.strip()
-                            break
-                    else:
-                        self.network_name = ""
+                    
+                    active_ssid = ""
+                    for line in ssid_result.stdout.strip().split('\n'):
+                        if line.startswith("yes:"):
+                            # The SSID is the part after "yes:"
+                            active_ssid = line[4:].strip()
+                            break  # Found the active connection
+                    
+                    self.network_name = active_ssid
+
                 except Exception:
                     self.network_name = ""
             else:
@@ -63,7 +65,7 @@ class NetworkControl(Container):
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
             self.is_enabled = False
             self.network_name = ""
-
+            
     def watch_is_enabled(self, is_enabled: bool) -> None:
         """Update button label when is_enabled changes."""
         self.update_button_label()
@@ -374,8 +376,6 @@ class FanControl(Container):
         
         # Apply fan mode without sudo (adjust commands based on your system)
         try:
-            # Example for systems with fan control utilities
-            # You may need to adjust these commands for your specific hardware
             if mode == "silent":
                 subprocess.run(
                     ["system76-power", "profile", "battery"],
@@ -392,13 +392,11 @@ class FanControl(Container):
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3
                 )
             elif mode == "auto":
-                # Reset to auto/default
                 subprocess.run(
                     ["system76-power", "profile", "balanced"],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3
                 )
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
-            # Silently fail if commands don't work
             pass
 
 
@@ -423,15 +421,13 @@ class ServicesPanel(Container):
     def compose(self) -> ComposeResult:
         """Compose the services panel layout."""
         with Horizontal(id="services-main-container"):
-            # Left side - Interactive controls (small buttons, long length)
             with Vertical(id="services-left-panel"):
                 with Container(classes="service-control-item-left-top"):
                     yield self.network_control
                     yield self.bluetooth_control
                 with Container(classes="service-control-item-left-bottom"):
-                    pass  # Empty space for now
+                    pass
             
-            # Right side - 4 equally spaced buttons
             with Vertical(id="services-right-panel"):
                 yield self.fan_control
                 yield Button("☾", id="service-btn-sleep", classes="service-square-btn")
