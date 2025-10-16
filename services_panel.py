@@ -14,7 +14,7 @@ class NetworkControl(Container):
     is_enabled = reactive(False)
 
     def __init__(self):
-        super().__init__(classes="service-control-item-left")
+        super().__init__(classes="wifi-control")
         self.button = Button(
             "Wifi: Disabled",
             id="btn-network-toggle",
@@ -87,7 +87,7 @@ class BluetoothControl(Container):
     is_enabled = reactive(False)
 
     def __init__(self):
-        super().__init__(classes="service-control-item-left")
+        super().__init__(classes="bluetooth-control")
         self.button = Button(
             "BlueTooth: Disabled",
             id="btn-bluetooth-toggle",
@@ -165,8 +165,11 @@ class ServicesPanel(Container):
         with Horizontal(id="services-main-container"):
             # Left side - Interactive controls (small buttons, long length)
             with Vertical(id="services-left-panel"):
-                yield self.network_control
-                yield self.bluetooth_control
+                with Container(classes="service-control-item-left-top"):
+                    yield self.network_control
+                    yield self.bluetooth_control
+                with Container(classes="service-control-item-left-bottom"):
+                    pass  # Empty space for now
             
             # Right side - 4 equally spaced buttons
             with Vertical(id="services-right-panel"):
@@ -174,13 +177,3 @@ class ServicesPanel(Container):
                 yield Button("", id="service-btn-2", classes="service-square-btn")
                 yield Button("", id="service-btn-3", classes="service-square-btn")
                 yield Button("", id="service-btn-4", classes="service-square-btn")
-    
-    def on_mount(self) -> None:
-        """Load services when panel is mounted."""
-        self.network_control.refresh_status()
-        self.bluetooth_control.refresh_status()
-    
-    def on_panel_focus(self) -> None:
-        """Called when the panel receives focus - refresh services."""
-        self.network_control.refresh_status()
-        self.bluetooth_control.refresh_status()

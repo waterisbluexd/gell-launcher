@@ -448,6 +448,7 @@ Button.music-btn-play:focus {{
     height: 100%;
     layout: vertical;
     align: left middle;
+    padding-right: 1;
 }}
 
 #services-right-panel {{
@@ -464,11 +465,13 @@ Button.music-btn-play:focus {{
     width: 100%;
     height: 50%;
     align: center top;
+    layout: vertical;
 }}
 .service-control-item-left-bottom {{
     width: 100%;
     height: 50%;
     align: center bottom;
+    layout: vertical;
 }}
 
 .service-btn-left {{
