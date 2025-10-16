@@ -481,9 +481,10 @@ Button.music-btn-play:focus {{
     background: {c0};
     color: {c6};
     border: solid {c4};
-    text-align: center;
-    content-align: center middle;
+    text-align: left;
+    content-align: left middle;
     text-style: bold;
+    padding-left: 2;
 }}
 
 .service-btn-left:hover {{
@@ -500,7 +501,7 @@ Button.music-btn-play:focus {{
     text-style: bold;
 }}
 
-/* Right Side Controls - Square Buttons */
+/* Right Side Controls - Square Buttons with Larger Icons */
 .service-square-btn {{
     width: 100%;
     height: 100%;
@@ -511,6 +512,10 @@ Button.music-btn-play:focus {{
     border: solid {c4};
     content-align: center middle;
     text-align: center;
+}}
+
+.service-square-btn .button--label {{
+    text-style: bold;
 }}
 
 .service-square-btn:hover {{
