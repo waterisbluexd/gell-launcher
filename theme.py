@@ -530,6 +530,54 @@ Button.music-btn-play:focus {{
     border: solid {c3};
     text-style: bold;
 }}
+/* ========================================
+   SLIDER CONTROLS (BRIGHTNESS & VOLUME)
+   ======================================== */
+.slider-control {{
+    width: 100%;
+    height: auto;
+    min-height: 3;
+}}
+
+.slider-container {{
+    layout: horizontal;
+    width: 100%;
+    height: 100%;
+    align: left middle;
+    background: {c0};
+    border: solid {c4};
+    padding: 0 2;
+}}
+
+.slider-container:hover {{
+    background: {c4} 10%;
+    border: solid {c6};
+}}
+
+.slider-icon {{
+    width: auto;
+    color: {c6};
+    text-style: bold;
+    margin-right: 2;
+    content-align: center middle;
+}}
+
+.slider-bar {{
+    width: 1fr;
+    color: {c3};
+    text-style: bold;
+    content-align: left middle;
+    margin-right: 2;
+}}
+
+.slider-value {{
+    width: auto;
+    min-width: 5;
+    color: {c7};
+    text-style: bold;
+    text-align: right;
+    content-align: center middle;
+}}
 """
 
 

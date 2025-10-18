@@ -3,9 +3,210 @@ Services Panel - Display and manage system services with interactive controls
 """
 import subprocess
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Button
+from textual.widget import Widget
+from textual.widgets import Static, Button
 from textual.reactive import reactive
+from textual.events import MouseDown, MouseMove, MouseUp
+from textual.message import Message
+from textual.containers import Container, Horizontal, Vertical
+from rich.text import Text
+
+
+class Slider(Widget):
+    """A draggable slider widget."""
+    
+    DEFAULT_CSS = """
+    Slider {
+        height: 1;
+        width: 100%;
+    }
+    """
+    
+    class Changed(Message):
+        """Posted when the slider value changes."""
+        def __init__(self, slider: "Slider", value: float) -> None:
+            self.slider = slider
+            self.value = value
+            super().__init__()
+    
+    value = reactive(0.0)  # 0.0 to 1.0
+    is_dragging = reactive(False)
+    
+    def __init__(
+        self,
+        initial_value: float = 0.5,
+        fill_char: str = "━",
+        empty_char: str = "─",
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.value = max(0.0, min(1.0, initial_value))
+        self.fill_char = fill_char
+        self.empty_char = empty_char
+    
+    def render(self) -> Text:
+        """Render the slider bar."""
+        width = self.size.width
+        if width < 1:
+            return Text("")
+        
+        # Calculate filled portion
+        filled_width = int(self.value * width)
+        
+        # Build the slider visual
+        filled = self.fill_char * filled_width
+        empty = self.empty_char * (width - filled_width)
+        
+        return Text(filled + empty)
+    
+    def on_mouse_down(self, event: MouseDown) -> None:
+        """Handle mouse down - start dragging."""
+        self.is_dragging = True
+        self._update_value_from_mouse(event.x)
+        self.capture_mouse()
+    
+    def on_mouse_move(self, event: MouseMove) -> None:
+        """Handle mouse move - update value while dragging."""
+        if self.is_dragging:
+            self._update_value_from_mouse(event.x)
+    
+    def on_mouse_up(self, event: MouseUp) -> None:
+        """Handle mouse up - stop dragging."""
+        if self.is_dragging:
+            self.is_dragging = False
+            self.release_mouse()
+    
+    def _update_value_from_mouse(self, x: int) -> None:
+        """Update slider value based on mouse position."""
+        width = self.size.width
+        if width > 0:
+            new_value = max(0.0, min(1.0, x / width))
+            if abs(new_value - self.value) > 0.01:  # Threshold to reduce updates
+                self.value = new_value
+                self.post_message(self.Changed(self, self.value))
+    
+    def watch_value(self, value: float) -> None:
+        """Refresh display when value changes."""
+        self.refresh()
+
+
+class BrightnessControl(Container):
+    """Brightness slider control with icon and percentage."""
+    
+    brightness = reactive(50)  # 0-100
+    
+    def __init__(self):
+        super().__init__(classes="slider-control")
+        self.slider = Slider(initial_value=0.5)
+        self._get_current_brightness()
+    
+    def compose(self):
+        with Container(classes="slider-container"):
+            yield Static("☀", classes="slider-icon")
+            yield self.slider
+            self.value_label = Static(f"{self.brightness}%", classes="slider-value")
+            yield self.value_label
+    
+    def on_mount(self) -> None:
+        """Update slider value on mount."""
+        self.slider.value = self.brightness / 100.0
+        self.slider.add_class("slider-bar")
+    
+    def on_slider_changed(self, event: Slider.Changed) -> None:
+        """Handle slider value changes."""
+        if event.slider == self.slider:
+            self.brightness = int(event.value * 100)
+            self._set_brightness(self.brightness)
+            self.value_label.update(f"{self.brightness}%")
+    
+    def _get_current_brightness(self) -> None:
+        """Get current brightness using brightnessctl."""
+        try:
+            result = subprocess.run(
+                ["brightnessctl", "get"],
+                capture_output=True, text=True, timeout=1
+            )
+            current = int(result.stdout.strip())
+            
+            # Get max brightness
+            result_max = subprocess.run(
+                ["brightnessctl", "max"],
+                capture_output=True, text=True, timeout=1
+            )
+            max_bright = int(result_max.stdout.strip())
+            
+            self.brightness = int((current / max_bright) * 100)
+        except Exception:
+            self.brightness = 50
+    
+    def _set_brightness(self, percent: int) -> None:
+        """Set brightness using brightnessctl."""
+        try:
+            subprocess.run(
+                ["brightnessctl", "set", f"{percent}%"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=1
+            )
+        except Exception:
+            pass
+
+
+class VolumeControl(Container):
+    """Volume slider control with icon and percentage."""
+    
+    volume = reactive(50)  # 0-100
+    
+    def __init__(self):
+        super().__init__(classes="slider-control")
+        self.slider = Slider(initial_value=0.5)
+        self._get_current_volume()
+    
+    def compose(self):
+        with Container(classes="slider-container"):
+            yield Static("♪", classes="slider-icon")
+            yield self.slider
+            self.value_label = Static(f"{self.volume}%", classes="slider-value")
+            yield self.value_label
+    
+    def on_mount(self) -> None:
+        """Update slider value on mount."""
+        self.slider.value = self.volume / 100.0
+        self.slider.add_class("slider-bar")
+    
+    def on_slider_changed(self, event: Slider.Changed) -> None:
+        """Handle slider value changes."""
+        if event.slider == self.slider:
+            self.volume = int(event.value * 100)
+            self._set_volume(self.volume)
+            self.value_label.update(f"{self.volume}%")
+    
+    def _get_current_volume(self) -> None:
+        """Get current volume using pactl."""
+        try:
+            result = subprocess.run(
+                ["pactl", "get-sink-volume", "@DEFAULT_SINK@"],
+                capture_output=True, text=True, timeout=1
+            )
+            # Parse output like: "Volume: front-left: 65536 /  100% / 0.00 dB"
+            for part in result.stdout.split():
+                if part.endswith('%'):
+                    self.volume = int(part.rstrip('%'))
+                    break
+        except Exception:
+            self.volume = 50
+    
+    def _set_volume(self, percent: int) -> None:
+        """Set volume using pactl."""
+        try:
+            subprocess.run(
+                ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{percent}%"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=1
+            )
+        except Exception:
+            pass
 
 
 class NetworkControl(Container):
@@ -408,6 +609,8 @@ class ServicesPanel(Container):
         self.network_control = NetworkControl()
         self.bluetooth_control = BluetoothControl()
         self.fan_control = FanControl()
+        self.brightness_control = BrightnessControl()
+        self.volume_control = VolumeControl()
     
     def on_mount(self) -> None:
         """Set up periodic refresh when panel is mounted."""
@@ -426,7 +629,8 @@ class ServicesPanel(Container):
                     yield self.network_control
                     yield self.bluetooth_control
                 with Container(classes="service-control-item-left-bottom"):
-                    pass
+                    yield self.brightness_control
+                    yield self.volume_control
             
             with Vertical(id="services-right-panel"):
                 yield self.fan_control
