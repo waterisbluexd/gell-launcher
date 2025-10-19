@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Gell Launcher - A Textual-based application launcher with multiple panels
 """
@@ -6,13 +5,8 @@ import sys
 import subprocess
 from pathlib import Path
 from typing import Optional
-
-try:
-    from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler
-except ImportError:
-    print("Error: 'watchdog' is not installed. Please run 'pip install watchdog'.")
-    sys.exit(1)
+import os
+import signal
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -21,7 +15,7 @@ from textual.widgets import Input
 from textual.screen import Screen
 
 # Local imports
-from theme import generate_css, load_wal_colors
+from theme import generate_css, load_wal_colors, get_file_mtime
 from music_panel import MusicPanel
 from dmenu import AppLauncherPanel, clear_cache
 from system_panel import SystemPanel
@@ -29,7 +23,6 @@ from gell_panel import GellPanel
 from weather_panel import WeatherPanel
 from services_panel import ServicesPanel
 from clipboard import ClipboardPanel
-
 
 # Handle cache refresh command
 if "--refresh" in sys.argv:
@@ -51,9 +44,9 @@ class GellLauncher(Screen):
         self.gell_panel = GellPanel()
         self.weather_panel = WeatherPanel()
         self.services_panel = ServicesPanel()
-        self.clipboard_panel = ClipboardPanel()  # Now it's a widget!
+        self.clipboard_panel = ClipboardPanel()
         
-        # Panel configuration for top panel (Gell)
+        # Panel configuration
         self.top_panels = [
             {"name": "Gell Launcher", "render": self.render_panel_launcher},
             {"name": "Weather", "render": self.render_panel_weather},
@@ -62,7 +55,6 @@ class GellLauncher(Screen):
             {"name": "System Info", "render": self.render_panel_system},
         ]
         
-        # Middle panels configuration (Apps/Clipboard area)
         self.middle_panels = [
             {"name": "Apps", "render": self.render_middle_apps},
             {"name": "Clipboard", "render": self.render_middle_clipboard},
@@ -81,38 +73,28 @@ class GellLauncher(Screen):
             yield Input(placeholder="Search apps...", id="search-input")
     
     def render_panel_launcher(self) -> ComposeResult:
-        """Render the Gell launcher panel."""
         yield self.gell_panel
 
     def render_panel_weather(self) -> ComposeResult:
-        """Render the weather panel."""
         yield self.weather_panel
 
     def render_panel_music(self) -> ComposeResult:
-        """Render the music player panel."""
         yield self.music_panel
         
     def render_panel_services(self) -> ComposeResult:
-        """Render the services panel."""
         yield self.services_panel
 
     def render_panel_system(self) -> ComposeResult:
-        """Render the system info panel."""
         yield self.system_panel
     
     def render_middle_apps(self) -> ComposeResult:
-        """Render the apps list in middle panel."""
         yield from self.app_launcher.compose_list()
     
     def render_middle_clipboard(self) -> ComposeResult:
-        """Render the clipboard panel in middle area."""
-        # Simply yield the ClipboardPanel widget
-        # It will handle its own composition via its compose() method
         yield self.clipboard_panel
 
     def on_mount(self) -> None:
         """Called when the screen is mounted."""
-        # Start the clock early - needs to be done after app is available
         if hasattr(self, 'app') and self.app:
             self.gell_panel.start_clock_early(self.app)
         
@@ -126,7 +108,6 @@ class GellLauncher(Screen):
         self.update_top_panel_display()
         self.update_middle_panel_display()
         
-        # Set up Input container border
         try:
             input_container = self.query_one("#Input")
             input_container.border_title = "Input"
@@ -152,26 +133,19 @@ class GellLauncher(Screen):
             pass
     
     def prewarm_all_panels(self) -> None:
-        """
-        Initialize the app and hide the window immediately.
-        The clock is already running thanks to start_clock_early().
-        """
+        """Initialize the app and hide the window immediately."""
         self.current_top_panel_index = 0
         self.current_middle_panel_index = 0
         self.update_top_panel_display()
         self.update_middle_panel_display()
         
-        # Set up Input container border
         try:
             input_container = self.query_one("#Input")
             input_container.border_title = "Input"
         except Exception:
             pass
         
-        # Hide the window quickly
         self.set_timer(0.05, self.hide_window_immediately)
-        
-        # Pre-warming is complete
         self.prewarm_mode = False
         
     def update_top_panel_display(self) -> None:
@@ -204,11 +178,9 @@ class GellLauncher(Screen):
             middle_container.remove_children()
             middle_container.mount(*panel_meta['render']())
             
-            # Call setup for specific panels
             if panel_meta['name'] == "Apps":
                 self.app_launcher.update_app_list()
             elif panel_meta['name'] == "Clipboard":
-                # Refresh the clipboard panel to show latest history
                 self.clipboard_panel.refresh_display()
                 
         except Exception as e:
@@ -221,7 +193,6 @@ class GellLauncher(Screen):
         )
         self.update_top_panel_display()
         
-        # Notify panels when they receive focus
         panel_name = self.top_panels[self.current_top_panel_index]['name']
         if panel_name == "Music Player":
             self.music_panel.on_panel_focus()
@@ -235,7 +206,6 @@ class GellLauncher(Screen):
         )
         self.update_middle_panel_display()
         
-        # Focus appropriate widget based on panel
         panel_name = self.middle_panels[self.current_middle_panel_index]['name']
         if panel_name == "Apps":
             try:
@@ -248,7 +218,6 @@ class GellLauncher(Screen):
         """Called when the screen is resumed."""
         self.app_launcher.reset()
         
-        # Reset to first panels
         if self.current_top_panel_index != 0:
             self.current_top_panel_index = 0
             self.update_top_panel_display()
@@ -257,7 +226,6 @@ class GellLauncher(Screen):
             self.current_middle_panel_index = 0
             self.update_middle_panel_display()
         
-        # Focus the search input
         try:
             search_input = self.query_one("#search-input", Input)
             search_input.focus()
@@ -284,13 +252,11 @@ class GellLauncher(Screen):
         """Handle button presses from various panels."""
         button_id = event.button.id or ""
         
-        # Handle clipboard buttons
         if button_id.startswith("clip-btn-"):
             try:
                 idx = int(button_id.split("-")[-1])
                 if 0 <= idx < len(self.clipboard_panel.history):
                     self.clipboard_panel.set_clipboard(self.clipboard_panel.history[idx])
-                    # Hide window after copying
                     self.action_hide_window()
             except (ValueError, IndexError):
                 pass
@@ -298,12 +264,10 @@ class GellLauncher(Screen):
 
     def on_key(self, event) -> None:
         """Handle keyboard input."""
-        # Block input during prewarm mode
         if self.prewarm_mode:
             event.stop()
             return
         
-        # Get current focus
         try:
             search_input = self.query_one("#search-input", Input)
         except Exception:
@@ -311,7 +275,6 @@ class GellLauncher(Screen):
         
         focused_widget = self.focused
         
-        # Handle middle panel switching (up/down for Apps/Clipboard)
         if event.key == "shift+down":
             self.switch_middle_panel(1)
             event.stop()
@@ -322,7 +285,6 @@ class GellLauncher(Screen):
             event.stop()
             return
 
-        # Handle top panel switching (left/right)
         if event.key == "shift+right":
             self.switch_top_panel(1)
             event.stop()
@@ -333,14 +295,12 @@ class GellLauncher(Screen):
             event.stop()
             return
         
-        # Only handle app list navigation when Apps panel is active
-        if self.current_middle_panel_index == 0:  # Apps panel
+        if self.current_middle_panel_index == 0:
             try:
                 app_list = self.query_one("#app-list")
             except Exception:
                 app_list = None
             
-            # Handle up/down navigation in app list
             if event.key == "down" and app_list:
                 if focused_widget is search_input:
                     app_list.focus()
@@ -361,20 +321,17 @@ class GellLauncher(Screen):
                 event.stop()
                 return
 
-        # Handle music player controls
         current_top_panel = self.top_panels[self.current_top_panel_index]['name']
         if current_top_panel == "Music Player" and event.key == "space":
             self.music_panel.play_pause()
             event.stop()
             return
 
-        # Handle escape key
         if event.key == "escape":
             self.action_hide_window()
             event.stop()
             return
 
-        # Focus search input on printable character (only in Apps panel)
         if (self.current_middle_panel_index == 0 and 
             search_input and
             focused_widget is not search_input and 
@@ -396,21 +353,6 @@ class GellLauncher(Screen):
         
         self.app_launcher.reset()
 
-
-class ThemeUpdateHandler(FileSystemEventHandler):
-    """Watches for changes in the pywal colors file and triggers a theme reload."""
-    
-    def __init__(self, app_instance: 'GellApp', file_to_watch: Path):
-        super().__init__()
-        self.app = app_instance
-        self.file_to_watch = str(file_to_watch)
-
-    def on_modified(self, event) -> None:
-        """Called when the watched file is modified."""
-        if not event.is_directory and event.src_path == self.file_to_watch:
-            self.app.call_from_thread(self.app.reload_theme)
-
-
 class GellApp(App):
     """Main application class for Gell Launcher."""
     
@@ -423,9 +365,24 @@ class GellApp(App):
     
     def __init__(self):
         super().__init__()
-        self.theme_observer: Optional[Observer] = None
         self.wal_colors_path = Path.home() / ".cache/wal/colors-kitty.conf"
+        self.last_mtime = 0.0
         self.reload_theme(is_initial_load=True)
+        
+        # Set up signal handler for SIGUSR1 (theme reload trigger)
+        signal.signal(signal.SIGUSR1, self._handle_theme_reload_signal)
+    
+    def _handle_theme_reload_signal(self, signum, frame):
+        """Handle SIGUSR1 signal from shell script to reload theme."""
+        # Use call_from_thread since signals arrive on a different thread
+        self.call_from_thread(self._reload_theme_from_signal)
+    
+    def _reload_theme_from_signal(self):
+        """Reload theme (called from main thread)."""
+        try:
+            self.reload_theme()
+        except Exception as e:
+            self.log(f"Error reloading theme from signal: {e}")
 
     def reload_theme(self, is_initial_load: bool = False) -> None:
         """Load wal colors, generate CSS, and apply it to the app."""
@@ -435,11 +392,24 @@ class GellApp(App):
             
             if is_initial_load:
                 self.CSS = new_css
+                self.last_mtime = get_file_mtime(str(self.wal_colors_path))
             else:
+                # Clear and reload stylesheet
                 self.stylesheet.clear()
                 self.stylesheet.read_string(new_css)
-                self.refresh_css(update_instances=True)
-                self.log("🎨 Theme reloaded successfully from pywal.")
+                
+                # Force refresh of all widgets
+                self.refresh(layout=True)
+                
+                # Also refresh the current screen and all its widgets
+                if self.screen:
+                    self.screen.refresh(layout=True)
+                    # Recursively refresh all widgets
+                    for widget in self.screen.query("*"):
+                        widget.refresh(layout=True)
+                
+                self.last_mtime = get_file_mtime(str(self.wal_colors_path))
+                self.log("🎨 Theme reloaded successfully!")
                 
         except FileNotFoundError:
             self.log(f"Theme file not found: {self.wal_colors_path}")
@@ -450,41 +420,27 @@ class GellApp(App):
             if is_initial_load:
                 self.CSS = ""
 
-    def start_theme_watcher(self) -> None:
-        """Initialize and start the watchdog observer in a background thread."""
-        if not self.wal_colors_path.exists():
-            self.log(
-                f"Pywal theme file not found at {self.wal_colors_path}. "
-                "Watcher not started."
-            )
-            return
-
+    def check_theme_changes(self) -> None:
+        """Check if the theme file has been modified and reload if needed."""
         try:
-            event_handler = ThemeUpdateHandler(self, self.wal_colors_path)
-            self.theme_observer = Observer()
-            self.theme_observer.schedule(
-                event_handler, 
-                path=str(self.wal_colors_path.parent), 
-                recursive=False
-            )
-            
-            self.theme_observer.daemon = True
-            self.theme_observer.start()
-            self.log(f"👀 Watching {self.wal_colors_path} for theme changes...")
+            current_mtime = get_file_mtime(str(self.wal_colors_path))
+            if current_mtime > self.last_mtime:
+                self.log(f"Theme file changed! Reloading...")
+                self.reload_theme()
         except Exception as e:
-            self.log(f"Failed to start theme watcher: {e}")
-    
+            self.log(f"Error checking theme changes: {e}")
+
     def on_mount(self) -> None:
         """Called when the app is mounted."""
         self.push_screen(GellLauncher())
-        self.start_theme_watcher()
-    
+        # Keep the interval check as a backup (every 5 seconds)
+        self.set_interval(5.0, self.check_theme_changes)
+
     def action_hide_window(self) -> None:
         """Action to hide the window."""
         screen = self.screen
         if isinstance(screen, GellLauncher):
             screen.action_hide_window()
-
 
 if __name__ == "__main__":
     GellApp().run()

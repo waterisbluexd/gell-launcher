@@ -3,8 +3,8 @@
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 CLASS_NAME="gell"
-WAL_CACHE="$HOME/.cache/wal/colors.json"
-WATCHER_PID_FILE="/tmp/gell_watcher.pid"
+WAL_COLORS="$HOME/.cache/wal/colors-kitty.conf"
+PID_FILE="/tmp/gell_launcher.pid"
 
 launch_gell() {
     kitty \
@@ -17,40 +17,58 @@ launch_gell() {
         -o initial_window_height=25c \
         -o remember_window_size=no \
         "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/app.py" &
+    
+    GELL_PID=$!
+    echo $GELL_PID > "$PID_FILE"
+    
     sleep 0.2
     hyprctl dispatch movetoworkspacesilent special:gell,class:$CLASS_NAME
 }
 
 kill_gell() {
     pkill -f "kitty --class=$CLASS_NAME" 2>/dev/null
+    pkill -f "inotifywait.*$WAL_COLORS" 2>/dev/null
+    rm -f "$PID_FILE"
     sleep 0.1
 }
 
-stop_watcher() {
-    if [ -f "$WATCHER_PID_FILE" ]; then
-        WATCHER_PID=$(cat "$WATCHER_PID_FILE")
-        if kill -0 "$WATCHER_PID" 2>/dev/null; then
-            kill "$WATCHER_PID" 2>/dev/null
-            # Also kill the inotifywait child process
-            pkill -P "$WATCHER_PID" 2>/dev/null
-        fi
-        rm -f "$WATCHER_PID_FILE"
-    fi
+restart_gell() {
+    echo "🔄 Restarting Gell with new theme..."
+    kill_gell
+    sleep 0.2
+    launch_gell
 }
 
-start_watcher() {
+watch_theme_changes() {
     if ! command -v inotifywait >/dev/null 2>&1; then
-        echo "⚠️  inotifywait not found. Install it with: sudo apt install inotify-tools"
+        echo "⚠️  inotifywait not found. Theme auto-reload disabled."
+        echo "   Install with: sudo apt install inotify-tools"
         return
     fi
-
+    
+    # Watch for theme file changes in background
     (
-        echo $$ > "$WATCHER_PID_FILE"
-        inotifywait -m -e close_write "$WAL_CACHE" 2>/dev/null | while read -r _ _ _; do
-            echo "🎨 Pywal theme changed — restarting Gell..."
-            kill_gell
-            sleep 0.2
-            launch_gell
+        while true; do
+            # Only watch for close_write event to avoid duplicates
+            inotifywait -e close_write "$WAL_COLORS" 2>/dev/null
+            
+            # Small delay to debounce multiple writes
+            sleep 0.1
+            
+            # Check if Gell is still running
+            if [ -f "$PID_FILE" ]; then
+                GELL_PID=$(cat "$PID_FILE")
+                if kill -0 "$GELL_PID" 2>/dev/null; then
+                    echo "🎨 Theme changed - reloading Gell..."
+                    restart_gell
+                else
+                    # Gell died, stop watching
+                    break
+                fi
+            else
+                # PID file gone, stop watching
+                break
+            fi
         done
     ) &
     
@@ -70,13 +88,10 @@ if [ "$WINDOW_EXISTS" -gt 0 ]; then
     kill_gell
 fi
 
-# Stop any existing watcher to prevent duplicates
-stop_watcher
-
 # Launch the app
 launch_gell
 
-# Start the theme watcher
-start_watcher
+# Start watching for theme changes
+watch_theme_changes
 
 exit 0
