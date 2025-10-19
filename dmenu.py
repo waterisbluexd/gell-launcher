@@ -150,30 +150,25 @@ class AppLauncherPanel:
         self.apps = get_desktop_files_cached()
         self.filtered_apps = self.apps[:]
     
-    def compose(self) -> ComposeResult:
-        """Returns the UI components for the app launcher."""
-        with Container(id="Apps"):
-            yield ListView(id="app-list")
-        with Container(id="Input"):
-            yield Input(placeholder="Search apps...", id="search-input")
-    
-    def on_mount(self):
-        """Initialize the app list on mount."""
-        self.update_app_list()
-        input_container = self.parent_screen.query_one("#Input")
-        input_container.border_title = "Input"
-        self.parent_screen.query_one("#search-input").focus()
+    def compose_list(self) -> ComposeResult:
+        """Returns the app list container for middle panel."""
+        yield ListView(id="app-list")
     
     def update_app_list(self):
         """Updates the ListView with filtered apps."""
-        app_list = self.parent_screen.query_one("#app-list", ListView)
-        app_list.clear()
-        
-        for app in self.filtered_apps[:100]:
-            app_list.append(ListItem(Label(app.name)))
-        
-        apps_container = self.parent_screen.query_one("#Apps")
-        apps_container.border_title = f"Apps ({len(self.filtered_apps)})"
+        try:
+            app_list = self.parent_screen.query_one("#app-list", ListView)
+            app_list.clear()
+            
+            for app in self.filtered_apps[:100]:
+                app_list.append(ListItem(Label(app.name)))
+            
+            middle_container = self.parent_screen.query_one("#Middle")
+            current_title = middle_container.border_title or "Apps"
+            base_title = current_title.split('(')[0].strip()
+            middle_container.border_title = f"{base_title} ({len(self.filtered_apps)})"
+        except Exception:
+            pass
     
     def on_input_changed(self, value: str):
         """Filters apps based on search query."""
@@ -200,13 +195,19 @@ class AppLauncherPanel:
     
     def get_selected_index(self) -> int:
         """Returns the currently selected app list index."""
-        app_list = self.parent_screen.query_one("#app-list", ListView)
-        return app_list.index if app_list.index is not None else 0
+        try:
+            app_list = self.parent_screen.query_one("#app-list", ListView)
+            return app_list.index if app_list.index is not None else 0
+        except Exception:
+            return 0
     
     def reset(self):
         """Resets the launcher to initial state."""
-        search_input = self.parent_screen.query_one("#search-input", Input)
-        search_input.value = ""
-        search_input.focus()
+        try:
+            search_input = self.parent_screen.query_one("#search-input", Input)
+            search_input.value = ""
+            search_input.focus()
+        except Exception:
+            pass
         self.filtered_apps = self.apps[:]
         self.update_app_list()

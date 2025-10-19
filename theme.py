@@ -81,12 +81,22 @@ def generate_css(colors: dict[str, str]) -> str:
     border-title-style: bold;
 }}
 
-#Apps {{
+#Middle {{
     height: 64%;
     border: solid {c3};
     border-title-align: left;
     border-title-color: {c6};
     border-title-style: bold;
+}}
+
+#Apps {{
+    height: 100%;
+    border: none;
+}}
+
+#Clipboard {{
+    height: 100%;
+    border: none;
 }}
 
 #Input {{
@@ -530,6 +540,7 @@ Button.music-btn-play:focus {{
     border: solid {c3};
     text-style: bold;
 }}
+
 /* ========================================
    SLIDER CONTROLS (BRIGHTNESS & VOLUME)
    ======================================== */
@@ -577,6 +588,59 @@ Button.music-btn-play:focus {{
     text-style: bold;
     text-align: right;
     content-align: center middle;
+}}
+
+/* ========================================
+   CLIPBOARD PANEL
+   ======================================== */
+ClipboardPanel {{
+    width: 100%;
+    height: 100%;
+    background: {c0};
+    align: left top;
+}}
+
+#clipboard-scroll-area {{
+    width: 100%;
+    height: 100%;
+    background: {c0};
+    align: left top;
+}}
+
+.clipboard-empty {{
+    color: {c8};
+    text-align: left;
+    text-style: italic;
+    width: 100%;
+    height: 100%;
+    content-align: left top;
+}}
+
+.clipboard-btn {{
+    width: 100%;
+    min-height: 5;
+    background: {c0};
+    color: {c7};
+    border: solid {c4};
+    text-align: left;
+}}
+
+.clipboard-btn:hover {{
+    background: {c4} 10%;
+    color: {c14};
+    border: solid {c6};
+}}
+
+.clipboard-btn:focus {{
+    background: {c4} 20%;
+    color: {fg};
+    border: solid {c3};
+}}
+
+.clipboard-btn > .button--label {{
+    width: 100%;
+    text-align: left;
+    content-align: left top;
 }}
 """
 

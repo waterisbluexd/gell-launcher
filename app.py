@@ -28,6 +28,7 @@ from system_panel import SystemPanel
 from gell_panel import GellPanel
 from weather_panel import WeatherPanel
 from services_panel import ServicesPanel
+from clipboard import ClipboardPanel
 
 
 # Handle cache refresh command
@@ -50,9 +51,10 @@ class GellLauncher(Screen):
         self.gell_panel = GellPanel()
         self.weather_panel = WeatherPanel()
         self.services_panel = ServicesPanel()
+        self.clipboard_panel = ClipboardPanel()  # Now it's a widget!
         
-        # Panel configuration
-        self.panels = [
+        # Panel configuration for top panel (Gell)
+        self.top_panels = [
             {"name": "Gell Launcher", "render": self.render_panel_launcher},
             {"name": "Weather", "render": self.render_panel_weather},
             {"name": "Music Player", "render": self.render_panel_music},
@@ -60,14 +62,23 @@ class GellLauncher(Screen):
             {"name": "System Info", "render": self.render_panel_system},
         ]
         
-        self.current_panel_index = 0
+        # Middle panels configuration (Apps/Clipboard area)
+        self.middle_panels = [
+            {"name": "Apps", "render": self.render_middle_apps},
+            {"name": "Clipboard", "render": self.render_middle_clipboard},
+        ]
+        
+        self.current_top_panel_index = 0
+        self.current_middle_panel_index = 0
         self.prewarm_mode = "--prewarm" in sys.argv
 
     def compose(self) -> ComposeResult:
         """Compose the UI layout."""
         with Vertical(id="gell-container"):
             yield Container(id="Gell")
-            yield from self.app_launcher.compose()
+            yield Container(id="Middle")
+            yield Container(id="Input")
+            yield Input(placeholder="Search apps...", id="search-input")
     
     def render_panel_launcher(self) -> ComposeResult:
         """Render the Gell launcher panel."""
@@ -88,6 +99,16 @@ class GellLauncher(Screen):
     def render_panel_system(self) -> ComposeResult:
         """Render the system info panel."""
         yield self.system_panel
+    
+    def render_middle_apps(self) -> ComposeResult:
+        """Render the apps list in middle panel."""
+        yield from self.app_launcher.compose_list()
+    
+    def render_middle_clipboard(self) -> ComposeResult:
+        """Render the clipboard panel in middle area."""
+        # Simply yield the ClipboardPanel widget
+        # It will handle its own composition via its compose() method
+        yield self.clipboard_panel
 
     def on_mount(self) -> None:
         """Called when the screen is mounted."""
@@ -102,8 +123,15 @@ class GellLauncher(Screen):
 
     def _initialize_display(self) -> None:
         """Initialize the display and focus the search input."""
-        self.update_panel_display()
-        self.app_launcher.on_mount()
+        self.update_top_panel_display()
+        self.update_middle_panel_display()
+        
+        # Set up Input container border
+        try:
+            input_container = self.query_one("#Input")
+            input_container.border_title = "Input"
+        except Exception:
+            pass
         
         try:
             search_input = self.query_one("#search-input", Input)
@@ -128,9 +156,17 @@ class GellLauncher(Screen):
         Initialize the app and hide the window immediately.
         The clock is already running thanks to start_clock_early().
         """
-        self.current_panel_index = 0
-        self.update_panel_display()
-        self.app_launcher.on_mount()
+        self.current_top_panel_index = 0
+        self.current_middle_panel_index = 0
+        self.update_top_panel_display()
+        self.update_middle_panel_display()
+        
+        # Set up Input container border
+        try:
+            input_container = self.query_one("#Input")
+            input_container.border_title = "Input"
+        except Exception:
+            pass
         
         # Hide the window quickly
         self.set_timer(0.05, self.hide_window_immediately)
@@ -138,44 +174,88 @@ class GellLauncher(Screen):
         # Pre-warming is complete
         self.prewarm_mode = False
         
-    def update_panel_display(self) -> None:
-        """Update the display to show the current panel."""
-        panel_meta = self.panels[self.current_panel_index]
+    def update_top_panel_display(self) -> None:
+        """Update the display to show the current top panel."""
+        panel_meta = self.top_panels[self.current_top_panel_index]
         
         try:
             panel_container = self.query_one("#Gell")
             panel_container.border_title = (
                 f"{panel_meta['name']} "
-                f"({self.current_panel_index + 1}/{len(self.panels)})"
+                f"({self.current_top_panel_index + 1}/{len(self.top_panels)})"
             )
             
             panel_container.remove_children()
             panel_container.mount(*panel_meta['render']())
         except Exception as e:
-            self.app.log(f"Error updating panel display: {e}")
+            self.app.log(f"Error updating top panel display: {e}")
+    
+    def update_middle_panel_display(self) -> None:
+        """Update the display to show the current middle panel."""
+        panel_meta = self.middle_panels[self.current_middle_panel_index]
+        
+        try:
+            middle_container = self.query_one("#Middle")
+            middle_container.border_title = (
+                f"{panel_meta['name']} "
+                f"({self.current_middle_panel_index + 1}/{len(self.middle_panels)})"
+            )
+            
+            middle_container.remove_children()
+            middle_container.mount(*panel_meta['render']())
+            
+            # Call setup for specific panels
+            if panel_meta['name'] == "Apps":
+                self.app_launcher.update_app_list()
+            elif panel_meta['name'] == "Clipboard":
+                # Refresh the clipboard panel to show latest history
+                self.clipboard_panel.refresh_display()
+                
+        except Exception as e:
+            self.app.log(f"Error updating middle panel display: {e}")
 
-    def switch_panel(self, direction: int) -> None:
-        """Switch to the next/previous panel."""
-        self.current_panel_index = (
-            (self.current_panel_index + direction) % len(self.panels)
+    def switch_top_panel(self, direction: int) -> None:
+        """Switch to the next/previous top panel."""
+        self.current_top_panel_index = (
+            (self.current_top_panel_index + direction) % len(self.top_panels)
         )
-        self.update_panel_display()
+        self.update_top_panel_display()
         
         # Notify panels when they receive focus
-        panel_name = self.panels[self.current_panel_index]['name']
+        panel_name = self.top_panels[self.current_top_panel_index]['name']
         if panel_name == "Music Player":
             self.music_panel.on_panel_focus()
         elif panel_name == "Gell Launcher":
             self.gell_panel.on_panel_focus()
     
+    def switch_middle_panel(self, direction: int) -> None:
+        """Switch to the next/previous middle panel."""
+        self.current_middle_panel_index = (
+            (self.current_middle_panel_index + direction) % len(self.middle_panels)
+        )
+        self.update_middle_panel_display()
+        
+        # Focus appropriate widget based on panel
+        panel_name = self.middle_panels[self.current_middle_panel_index]['name']
+        if panel_name == "Apps":
+            try:
+                search_input = self.query_one("#search-input", Input)
+                search_input.focus()
+            except Exception:
+                pass
+    
     def on_screen_resume(self) -> None:
         """Called when the screen is resumed."""
         self.app_launcher.reset()
         
-        # Reset to first panel
-        if self.current_panel_index != 0:
-            self.current_panel_index = 0
-            self.update_panel_display()
+        # Reset to first panels
+        if self.current_top_panel_index != 0:
+            self.current_top_panel_index = 0
+            self.update_top_panel_display()
+        
+        if self.current_middle_panel_index != 0:
+            self.current_middle_panel_index = 0
+            self.update_middle_panel_display()
         
         # Focus the search input
         try:
@@ -199,6 +279,22 @@ class GellLauncher(Screen):
         index_to_launch = self.app_launcher.get_selected_index()
         if self.app_launcher.launch_selected_app(index_to_launch):
             self.action_hide_window()
+    
+    def on_button_pressed(self, event) -> None:
+        """Handle button presses from various panels."""
+        button_id = event.button.id or ""
+        
+        # Handle clipboard buttons
+        if button_id.startswith("clip-btn-"):
+            try:
+                idx = int(button_id.split("-")[-1])
+                if 0 <= idx < len(self.clipboard_panel.history):
+                    self.clipboard_panel.set_clipboard(self.clipboard_panel.history[idx])
+                    # Hide window after copying
+                    self.action_hide_window()
+            except (ValueError, IndexError):
+                pass
+            event.stop()
 
     def on_key(self, event) -> None:
         """Handle keyboard input."""
@@ -210,47 +306,64 @@ class GellLauncher(Screen):
         # Get current focus
         try:
             search_input = self.query_one("#search-input", Input)
-            app_list = self.query_one("#app-list")
         except Exception:
-            return
+            search_input = None
         
         focused_widget = self.focused
-
-        # Handle up/down navigation
-        if event.key == "down":
-            if focused_widget is search_input:
-                app_list.focus()
-                if app_list.index is None:
-                    app_list.index = 0
-            else:
-                app_list.action_cursor_down()
+        
+        # Handle middle panel switching (up/down for Apps/Clipboard)
+        if event.key == "shift+down":
+            self.switch_middle_panel(1)
             event.stop()
             return
             
-        elif event.key == "up":
-            if focused_widget is search_input:
-                app_list.focus()
-                if app_list.index is None:
-                    app_list.index = len(app_list.children) - 1
-            else:
-                app_list.action_cursor_up()
+        elif event.key == "shift+up":
+            self.switch_middle_panel(-1)
             event.stop()
             return
 
-        # Handle panel switching
+        # Handle top panel switching (left/right)
         if event.key == "shift+right":
-            self.switch_panel(1)
+            self.switch_top_panel(1)
             event.stop()
             return
             
         elif event.key == "shift+left":
-            self.switch_panel(-1)
+            self.switch_top_panel(-1)
             event.stop()
             return
+        
+        # Only handle app list navigation when Apps panel is active
+        if self.current_middle_panel_index == 0:  # Apps panel
+            try:
+                app_list = self.query_one("#app-list")
+            except Exception:
+                app_list = None
+            
+            # Handle up/down navigation in app list
+            if event.key == "down" and app_list:
+                if focused_widget is search_input:
+                    app_list.focus()
+                    if app_list.index is None:
+                        app_list.index = 0
+                else:
+                    app_list.action_cursor_down()
+                event.stop()
+                return
+                
+            elif event.key == "up" and app_list:
+                if focused_widget is search_input:
+                    app_list.focus()
+                    if app_list.index is None:
+                        app_list.index = len(app_list.children) - 1
+                else:
+                    app_list.action_cursor_up()
+                event.stop()
+                return
 
         # Handle music player controls
-        current_panel = self.panels[self.current_panel_index]['name']
-        if current_panel == "Music Player" and event.key == "space":
+        current_top_panel = self.top_panels[self.current_top_panel_index]['name']
+        if current_top_panel == "Music Player" and event.key == "space":
             self.music_panel.play_pause()
             event.stop()
             return
@@ -261,8 +374,10 @@ class GellLauncher(Screen):
             event.stop()
             return
 
-        # Focus search input on printable character
-        if (focused_widget is not search_input and 
+        # Focus search input on printable character (only in Apps panel)
+        if (self.current_middle_panel_index == 0 and 
+            search_input and
+            focused_widget is not search_input and 
             event.key.isprintable() and 
             len(event.key) == 1):
             search_input.focus()
